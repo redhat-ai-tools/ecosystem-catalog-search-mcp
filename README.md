@@ -101,7 +101,7 @@ The following environment variables are used to configure the server:
 
 ### Optional
 - **`MCP_TRANSPORT`** - Transport protocol for MCP communication  
-  - Default: `stdio`
+  - Default: `sse`
 - **`ENABLE_METRICS`** - Enable Prometheus metrics collection  
   - Default: `false`
 - **`METRICS_PORT`** - Port for metrics HTTP server  
