@@ -1,4 +1,4 @@
-# Red Hat Search MCP Server
+# Red Hat Ecosystem Catalog Search MCP Server
 
 A Model Context Protocol (MCP) server that provides access to Red Hat's ecosystem catalog using the REST search API. This server enables AI assistants to search for certified software, container repositories, business partners, hardware, and cloud solutions through a standardized interface.
 
