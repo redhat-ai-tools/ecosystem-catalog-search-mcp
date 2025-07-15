@@ -1,0 +1,142 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: redhat-search-mcp
+parameters:
+  - name: IMAGE
+    value: quay.io/redhat-ai-tools/redhat-search-mcp
+  - name: IMAGE_TAG
+    value: latest
+  - name: MCP_TRANSPORT
+    value: sse
+  - name: FASTMCP_HOST
+    value: "0.0.0.0"
+  - name: CERT_MANAGER_ISSUER_NAME
+    value: letsencrypt-dns
+  - name: MCP_HOST
+    value: redhat-search-mcp.example.com
+  - name: ENABLE_METRICS
+    value: "true"
+  - name: METRICS_PORT
+    value: "8000"
+objects:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: redhat-search-mcp
+    name: redhat-search-mcp
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: redhat-search-mcp
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: redhat-search-mcp
+      spec:
+        containers:
+        - name: redhat-search-mcp
+          image: ${IMAGE}:${IMAGE_TAG}
+          imagePullPolicy: Always
+          env:
+          - name: MCP_TRANSPORT
+            value: ${MCP_TRANSPORT}
+          - name: FASTMCP_HOST
+            value: ${FASTMCP_HOST}
+          - name: ENABLE_METRICS
+            value: ${ENABLE_METRICS}
+          - name: METRICS_PORT
+            value: ${METRICS_PORT}
+          ports:
+          - containerPort: 8000
+            protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: redhat-search-mcp
+    labels:
+      app: redhat-search-mcp
+  spec:
+    selector:
+      app: redhat-search-mcp
+    ports:
+      - name: redhat-search-mcp
+        protocol: TCP
+        port: 8000
+        targetPort: 8000
+    type: ClusterIP
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: redhat-search-mcp-metrics
+    labels:
+      app: redhat-search-mcp-metrics
+  spec:
+    selector:
+      app: redhat-search-mcp
+    ports:
+      - name: redhat-search-mcp-metrics
+        protocol: TCP
+        port: ${{METRICS_PORT}}
+        targetPort: ${{METRICS_PORT}}
+    type: ClusterIP
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    annotations:
+      cert-manager.io/issuer-kind: ClusterIssuer
+      cert-manager.io/issuer-name: ${CERT_MANAGER_ISSUER_NAME}
+    name: redhat-search-mcp
+    labels:
+      app: redhat-search-mcp
+  spec:
+    host: ${MCP_HOST}
+    to:
+      kind: Service
+      name: redhat-search-mcp
+    port:
+      targetPort: 8000
+    tls:
+      insecureEdgeTerminationPolicy: Redirect
+      termination: edge 
