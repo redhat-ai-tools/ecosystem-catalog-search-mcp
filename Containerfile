@@ -1,4 +1,4 @@
-FROM registry.fedoraproject.org/fedora:40
+FROM registry.fedoraproject.org/fedora:43
 
 # Install system dependencies
 RUN dnf install -y python3 python3-pip git \
